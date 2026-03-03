@@ -1,0 +1,8 @@
+{
+  "server_name": "localhost",
+  "port": 8448,
+  "db_path": "slime.db",
+  "media_path": "media",
+  "signing_key_path": "slime.signing.key",
+  "homeserver_url": "http://localhost:8448"
+}

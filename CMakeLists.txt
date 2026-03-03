@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.14)
 
-project(Slime VERSION 1.0.0 LANGUAGES CXX)
+project(Slime VERSION 1.0.0 LANGUAGES CXX C)
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
@@ -13,12 +13,42 @@ option(SKIP_TESTS "Skip building and running tests" OFF)
 # Find threads (required by httplib)
 find_package(Threads REQUIRED)
 
+# SQLite amalgamation (third_party/sqlite3.h + sqlite3.c)
+add_library(sqlite3 STATIC third_party/sqlite3.c)
+target_compile_options(sqlite3 PRIVATE -O3)
+target_include_directories(sqlite3 PRIVATE ${CMAKE_SOURCE_DIR}/third_party)
+
+# libsodium
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(SODIUM REQUIRED libsodium)
+
+# OpenSSL (for httplib outbound TLS + SHA-256)
+find_package(OpenSSL REQUIRED)
+
 # Main executable
-add_executable(Slime src/main.cpp)
-target_link_libraries(Slime PRIVATE Threads::Threads)
+add_executable(Slime
+    src/main.cpp
+    src/config.cpp
+    src/database_manager.cpp
+    src/user_manager.cpp
+    src/auth_manager.cpp
+    src/room_manager.cpp
+    src/sync_manager.cpp
+    src/media_manager.cpp
+    src/key_manager.cpp
+    src/matrix_crypto.cpp
+    src/federation_manager.cpp
+    src/matrix_server.cpp
+)
+target_link_libraries(Slime PRIVATE
+    Threads::Threads sqlite3 ${SODIUM_LIBRARIES} OpenSSL::SSL OpenSSL::Crypto)
 
 # Include directories
-target_include_directories(Slime PRIVATE ${CMAKE_SOURCE_DIR}/include)
+target_include_directories(Slime PRIVATE
+    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/third_party
+    ${SODIUM_INCLUDE_DIRS})
+target_compile_definitions(Slime PRIVATE CPPHTTPLIB_OPENSSL_SUPPORT)
 
 # Testing (enabled by default)
 if(NOT SKIP_TESTS)
